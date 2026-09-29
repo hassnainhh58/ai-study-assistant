@@ -7,3 +7,4 @@ class StudyResponse(BaseModel):
     difficulty: str
     used_calculator: bool
     used_weather: bool
+    used_web_search: bool

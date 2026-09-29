@@ -1,55 +1,60 @@
-#it is a tool/library your python code uses to send and recieve web requests over the internet.
 import httpx
 
-#calculator tool
+
 def calculator(operation: str, a: float, b: float) -> float:
     """
     Perform a basic mathematical calculation.
     """
 
-    if operation == "add":
+    operation = operation.lower().strip()
+
+    # Accept common variations
+    if operation in ["add", "+", "plus"]:
         return a + b
 
-    if operation == "subtract":
+    if operation in ["subtract", "-", "minus"]:
         return a - b
 
-    if operation == "multiply":
+    if operation in ["multiply", "*", "x", "×", "times"]:
         return a * b
 
-    if operation == "divide":
+    if operation in ["divide", "/", "÷"]:
         if b == 0:
             raise ValueError("Cannot divide by zero.")
 
         return a / b
 
-    raise ValueError("Unknown operation.")
+    raise ValueError(
+        f"Unknown operation: {operation}"
+    )
 
-#weather tool
+
 def get_weather(latitude: float, longitude: float) -> dict:
     """
     Get current weather information for a location
-    using the Open-Meteo API.  
+    using the Open-Meteo API.
     """
-#URL tells the program where to send the request
+
     url = "https://api.open-meteo.com/v1/forecast"
-#parameters
+
     params = {
         "latitude": latitude,
         "longitude": longitude,
         "current": "temperature_2m,relative_humidity_2m,wind_speed_10m",
     }
-#its saying make a GET request to this URL with these parameters
-#response will contain information such as status code 200,400,401,etc
-    response = httpx.get(url, params=params, timeout=10)
 
-    
-#if the HTTP request failed raise an exception and if successful,execution continues
+    response = httpx.get(
+        url,
+        params=params,
+        timeout=10,
+    )
+
     response.raise_for_status()
 
     data = response.json()
-#get current data
+
     current = data["current"]
-#returning cleaner data
+
     return {
         "temperature": current["temperature_2m"],
         "humidity": current["relative_humidity_2m"],
@@ -80,3 +85,49 @@ def get_coordinates(city: str) -> tuple[float, float]:
         )
 
     return cities[city_key]
+
+
+def web_search(
+    question: str,
+    api_key: str,
+    model: str,
+) -> str:
+    """
+    Search the web for current or up-to-date information
+    using OpenRouter's web search.
+    """
+
+    url = "https://openrouter.ai/api/v1/chat/completions"
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "model": model,
+        "tools": [
+            {
+                "type": "openrouter:web_search"
+            }
+        ],
+        "messages": [
+            {
+                "role": "user",
+                "content": question,
+            }
+        ],
+    }
+
+    response = httpx.post(
+        url,
+        headers=headers,
+        json=payload,
+        timeout=60,
+    )
+
+    response.raise_for_status()
+
+    data = response.json()
+
+    return data["choices"][0]["message"]["content"]
