@@ -107,9 +107,6 @@ def get_weather(city: str) -> dict:
             return {
                 "success": False,
                 "city": city,
-                # "error": (
-                #     f"Could not find the location '{city}'. "
-                # ),
             }
 
         # Step 3: Request current weather
@@ -151,14 +148,9 @@ def get_weather(city: str) -> dict:
         }
 
     except Exception as error:
-        # Step 6: Return an error instead of raising it
         return {
             "success": False,
             "city": city,
-            # "error": (
-            #     f"Could not retrieve weather for '{city}'. "
-            #     f"Reason: {error}"
-            # ),
         }
 
 
