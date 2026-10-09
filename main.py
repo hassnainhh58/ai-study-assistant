@@ -8,7 +8,6 @@ from pydantic_ai.providers.openrouter import OpenRouterProvider
 from models import StudyResponse
 from tools import (
     calculator,
-    get_coordinates,
     get_weather,
     web_search,
 )
@@ -34,7 +33,7 @@ if not LLM_MODEL:
 # Create OpenRouter model
 # --------------------------------------------------
 
-model = OpenRouterModel( 
+model = OpenRouterModel(
     LLM_MODEL,
     provider=OpenRouterProvider(
         api_key=LLM_API_KEY,
@@ -97,7 +96,28 @@ agent = Agent(
     After using a tool, use its result to produce the
     final answer.
 
-    Structured output rules:
+    MULTIPLE TASKS AND TOOL ERRORS:
+
+    When a user asks multiple questions or requests multiple
+    tasks, try to answer every part.
+
+    If one tool fails, do not abandon the entire request.
+    Use results from successful tools to answer the remaining
+    parts.
+
+    A weather result with success=false means the weather
+    lookup failed. Explain the error returned by the tool.
+
+    Never invent weather data when the weather tool fails.
+
+    A failed weather lookup must not prevent you from
+    reporting a successful calculation or other successful
+    tool result.
+
+    Do not claim a tool succeeded unless its result supports
+    that claim.
+
+    STRUCTURED OUTPUT RULES:
 
     - used_calculator = true only if the calculator tool
       was actually called.
@@ -105,7 +125,7 @@ agent = Agent(
     - used_weather = true only if the weather tool
       was actually called.
 
-    - used_web_search = true only if the web_search tool
+    - used_web_search = true only if the web search tool
       was actually called.
 
     - If a tool was not used, its value must be false.
@@ -148,17 +168,15 @@ def calculate(
 # --------------------------------------------------
 
 @agent.tool_plain
-def weather(city: str) -> dict:
+def get_weather_tool(city: str) -> dict:
     """
-    Get current weather information for a city.
+    Get current weather for any city.
+
+    Returns weather data on success or a readable error
+    result if the location or weather cannot be retrieved.
     """
 
-    latitude, longitude = get_coordinates(city)
-
-    return get_weather(
-        latitude,
-        longitude,
-    )
+    return get_weather(city)
 
 
 # --------------------------------------------------
@@ -208,25 +226,17 @@ def main():
 
         try:
 
-            # --------------------------------------------------
-            # Let PydanticAI + LLM decide what to do
-            # --------------------------------------------------
-
+            # Let PydanticAI and the LLM decide what to do
             result = agent.run_sync(
                 question,
                 message_history=message_history,
+                model_settings={"timeout": 60},
             )
 
-            # --------------------------------------------------
             # Save conversation history
-            # --------------------------------------------------
-
             message_history = result.all_messages()
 
-            # --------------------------------------------------
             # Display result
-            # --------------------------------------------------
-
             print()
             print("AI:")
             print(f"Answer: {result.output.answer}")
