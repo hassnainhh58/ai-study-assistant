@@ -34,7 +34,7 @@ if not LLM_MODEL:
 # Create OpenRouter model
 # --------------------------------------------------
 
-model = OpenRouterModel(
+model = OpenRouterModel( 
     LLM_MODEL,
     provider=OpenRouterProvider(
         api_key=LLM_API_KEY,
