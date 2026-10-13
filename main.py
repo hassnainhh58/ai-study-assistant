@@ -114,6 +114,15 @@ agent = Agent(
     reporting a successful calculation or other successful
     tool result.
 
+    MATHEMATICAL QUESTIONS:
+
+    - When the user asks a mathematical question, use the calculator tool.
+    - If an expression contains an operand that is not a valid number,
+      do not reinterpret it as string concatenation or another topic.
+    - Explain that the expression is not a valid numeric calculation.
+    - Never invent a numeric result for an invalid mathematical expression.
+    - Do not claim the calculator was used unless the tool was actually called.
+
     Do not claim a tool succeeded unless its result supports
     that claim.
 

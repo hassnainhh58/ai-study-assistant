@@ -39,80 +39,58 @@ def calculator(
         f"Unknown operation: {operation}"
     )
 
-
-# --------------------------------------------------
-# Get coordinates
-# --------------------------------------------------
-
-def get_coordinates(
-    city: str,
-) -> tuple[float, float] | tuple[None, None]:
-    """
-    Convert a city name into latitude and longitude
-    using the Open-Meteo Geocoding API.
-
-    Returns (None, None) if no location is found.
-    """
-
-    url = "https://geocoding-api.open-meteo.com/v1/search"
-
-    params = {
-        "name": city,
-        "count": 1,
-        "language": "en",
-        "format": "json",
-    }
-
-    response = httpx.get(
-        url,
-        params=params,
-        timeout=10,
-    )
-
-    response.raise_for_status()
-
-    data = response.json()
-    results = data.get("results")
-
-    if not results:
-        return None, None
-
-    location = results[0]
-
-    return (
-        location["latitude"],
-        location["longitude"],
-    )
-
-
 # --------------------------------------------------
 # Get weather data
 # --------------------------------------------------
 
 def get_weather(city: str) -> dict:
     """
-    Get current weather information for a city.
+    Get current weather information for any city.
 
-    Returns:
-        success=True with weather data on success.
-        success=False with an error message on failure.
+    Returns weather data on success or an error message
+    if the location or weather cannot be retrieved.
     """
 
     try:
-        # Step 1: Get city coordinates
-        latitude, longitude = get_coordinates(city)
+        # Step 1: Get the city's coordinates
+        geocoding_url = "https://geocoding-api.open-meteo.com/v1/search"
 
-        # Step 2: Check if the city was found
-        if latitude is None or longitude is None:
+        geocoding_params = {
+            "name": city,
+            "count": 1,
+            "language": "en",
+            "format": "json",
+        }
+
+        response = httpx.get(
+            geocoding_url,
+            params=geocoding_params,
+            timeout=10,
+        )
+
+        response.raise_for_status()
+
+        location_data = response.json()
+        results = location_data.get("results")
+
+        # Step 2: Handle an unknown city
+        if not results:
             return {
-                "success": False,
                 "city": city,
+                "error": (
+                    f"Could not find the exact location '{city}'. "
+                ),
             }
 
-        # Step 3: Request current weather
-        url = "https://api.open-meteo.com/v1/forecast"
+        # Step 3: Extract latitude and longitude
+        location = results[0]
+        latitude = location["latitude"]
+        longitude = location["longitude"]
 
-        params = {
+        # Step 4: Request current weather
+        weather_url = "https://api.open-meteo.com/v1/forecast"
+
+        weather_params = {
             "latitude": latitude,
             "longitude": longitude,
             "current": (
@@ -123,14 +101,14 @@ def get_weather(city: str) -> dict:
         }
 
         response = httpx.get(
-            url,
-            params=params,
+            weather_url,
+            params=weather_params,
             timeout=10,
         )
 
         response.raise_for_status()
 
-        # Step 4: Extract weather data
+        # Step 5: Extract weather data
         data = response.json()
         current = data["current"]
 
@@ -140,19 +118,21 @@ def get_weather(city: str) -> dict:
             "wind_speed": current["wind_speed_10m"],
         }
 
-        # Step 5: Return successful result
+        # Step 6: Return successful result
         return {
-            "success": True,
             "city": city,
             "weather": weather_data,
         }
 
     except Exception as error:
+        # Step 7: Return a readable error
         return {
-            "success": False,
             "city": city,
+            "error": (
+                f"Could not retrieve weather for '{city}'. "
+                f"Reason: {error}"
+            ),
         }
-
 
 # --------------------------------------------------
 # Web search
