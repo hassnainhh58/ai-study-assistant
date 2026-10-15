@@ -39,20 +39,30 @@ def calculator(
         f"Unknown operation: {operation}"
     )
 
+
 # --------------------------------------------------
 # Get weather data
 # --------------------------------------------------
-
 def get_weather(city: str) -> dict:
     """
-    Get current weather information for any city.
+    Get current weather information for a city.
 
     Returns weather data on success or an error message
-    if the location or weather cannot be retrieved.
+    if the city cannot be found or weather cannot be retrieved.
     """
 
+    # Step 1: Validate the city name
+    city = city.strip()
+
+    if not city or not any(char.isalpha() for char in city):
+        return {
+            "success": False,
+            "city": city,
+            "error": "Please enter a valid city name.",
+        }
+
     try:
-        # Step 1: Get the city's coordinates
+        # Step 2: Find the city's coordinates
         geocoding_url = "https://geocoding-api.open-meteo.com/v1/search"
 
         geocoding_params = {
@@ -73,21 +83,33 @@ def get_weather(city: str) -> dict:
         location_data = response.json()
         results = location_data.get("results")
 
-        # Step 2: Handle an unknown city
+        # Step 3: Check whether the city was found
         if not results:
             return {
+                "success": False,
+                "city": city,
+                "error": f"Could not find the city '{city}'.",
+            }
+
+        # Step 4: Check whether the result matches the city
+        location = results[0]
+        found_city = location.get("name", "")
+
+        if found_city.casefold() != city.casefold():
+            return {
+                "success": False,
                 "city": city,
                 "error": (
-                    f"Could not find the exact location '{city}'. "
+                    f"Could not verify '{city}' as the returned "
+                    f"location was '{found_city}'."
                 ),
             }
 
-        # Step 3: Extract latitude and longitude
-        location = results[0]
+        # Step 5: Get the city's coordinates
         latitude = location["latitude"]
         longitude = location["longitude"]
 
-        # Step 4: Request current weather
+        # Step 6: Request current weather
         weather_url = "https://api.open-meteo.com/v1/forecast"
 
         weather_params = {
@@ -108,7 +130,7 @@ def get_weather(city: str) -> dict:
 
         response.raise_for_status()
 
-        # Step 5: Extract weather data
+        # Step 7: Extract weather data
         data = response.json()
         current = data["current"]
 
@@ -118,15 +140,17 @@ def get_weather(city: str) -> dict:
             "wind_speed": current["wind_speed_10m"],
         }
 
-        # Step 6: Return successful result
+        # Step 8: Return successful result
         return {
+            "success": True,
             "city": city,
             "weather": weather_data,
         }
 
     except Exception as error:
-        # Step 7: Return a readable error
+        # Step 9: Handle errors
         return {
+            "success": False,
             "city": city,
             "error": (
                 f"Could not retrieve weather for '{city}'. "

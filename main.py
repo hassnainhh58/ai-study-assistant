@@ -214,7 +214,6 @@ def main():
     print("================================")
     print("      AI STUDY ASSISTANT")
     print("================================")
-    print("Type 'exit' to quit.")
     print()
 
     # Conversation memory
